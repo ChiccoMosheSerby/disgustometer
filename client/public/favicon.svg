@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <radialGradient id="sphere" cx="42%" cy="32%" r="78%">
+      <stop offset="0%" stop-color="#e2ec5e"/>
+      <stop offset="45%" stop-color="#7cc62c"/>
+      <stop offset="100%" stop-color="#4ea01f"/>
+    </radialGradient>
+    <radialGradient id="sickL" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#caa93c" stop-opacity="0.85"/>
+      <stop offset="100%" stop-color="#caa93c" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="sickR" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#caa93c" stop-opacity="0.85"/>
+      <stop offset="100%" stop-color="#caa93c" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <!-- transparent background: only the face circle is painted -->
+  <circle cx="256" cy="256" r="234" fill="url(#sphere)"/>
+  <ellipse cx="150" cy="360" rx="120" ry="90" fill="url(#sickL)"/>
+  <ellipse cx="362" cy="360" rx="120" ry="90" fill="url(#sickR)"/>
+  <g fill="none" stroke="#2f7d24" stroke-width="22" stroke-linecap="round" stroke-linejoin="round">
+    <!-- worried eyebrows -->
+    <path d="M112 214 Q150 168 205 158"/>
+    <path d="M400 214 Q362 168 307 158"/>
+    <!-- queasy wavy mouth -->
+    <path d="M150 352 C182 330 205 344 232 366 C250 380 262 376 276 360 C300 334 334 348 364 336"/>
+  </g>
+  <!-- eyes -->
+  <ellipse cx="185" cy="238" rx="30" ry="42" fill="#2f7d24"/>
+  <ellipse cx="327" cy="238" rx="30" ry="42" fill="#2f7d24"/>
+</svg>
