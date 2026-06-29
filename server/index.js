@@ -2,6 +2,10 @@ import express from "express";
 import cors from "cors";
 import "dotenv/config";
 import Anthropic from "@anthropic-ai/sdk";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const app = express();
 app.use(cors());
@@ -48,6 +52,15 @@ app.post("/api/rate", async (req, res) => {
     console.error(err);
     res.status(500).json({ error: err?.message || "server error" });
   }
+});
+
+// In production (e.g. Render), serve the built client from this same service.
+// The Vite dev proxy handles this in development, so we only do it when the
+// build output exists.
+const clientDist = path.resolve(__dirname, "../client/dist");
+app.use(express.static(clientDist));
+app.get(/^(?!\/api\/).*/, (_req, res) => {
+  res.sendFile(path.join(clientDist, "index.html"));
 });
 
 const PORT = process.env.PORT || 3001;
