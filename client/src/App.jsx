@@ -55,6 +55,10 @@ export default function App() {
   const [hint, setHint] = useState("הקישו כדי לדבר");
   const [liveT, setLiveT] = useState("");
   const [textIn, setTextIn] = useState("");
+  const [speaking, setSpeaking] = useState(false);
+  const [hasResult, setHasResult] = useState(false);
+  const scoreValRef = useRef(0);
+  const canSpeak = typeof window !== "undefined" && !!window.speechSynthesis;
   const [bubbles] = useState(() =>
     Array.from({ length: 14 }, () => ({
       size: 6 + Math.random() * 22,
@@ -92,6 +96,24 @@ export default function App() {
     rafRef.current = requestAnimationFrame(step);
   }
 
+  /* read the current verdict aloud (Hebrew text-to-speech) */
+  function speak() {
+    const synth = window.speechSynthesis;
+    if (!synth) return;
+    if (speaking) { synth.cancel(); setSpeaking(false); return; }
+    const parts = [`ציון הגועל: ${scoreValRef.current}`, bandLabel(scoreValRef.current), verdict.text];
+    const u = new SpeechSynthesisUtterance(parts.filter(Boolean).join(". "));
+    u.lang = "he-IL";
+    u.rate = 1;
+    const heVoice = synth.getVoices().find((v) => v.lang && v.lang.toLowerCase().startsWith("he"));
+    if (heVoice) u.voice = heVoice;
+    u.onend = () => setSpeaking(false);
+    u.onerror = () => setSpeaking(false);
+    synth.cancel();
+    setSpeaking(true);
+    synth.speak(u);
+  }
+
   /* initial paint + speech-recognition setup */
   useEffect(() => {
     setVisual(0);
@@ -120,7 +142,7 @@ export default function App() {
     } else {
       setHint("אין תמיכה בקול כאן — הקלידו למטה");
     }
-    return () => { try { recogRef.current?.stop(); } catch {} cancelAnimationFrame(rafRef.current); };
+    return () => { try { recogRef.current?.stop(); } catch {} try { window.speechSynthesis?.cancel(); } catch {} cancelAnimationFrame(rafRef.current); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -128,6 +150,9 @@ export default function App() {
     text = (text || "").trim();
     if (!text) { setVerdict({ text: "קודם תגידו או תקלידו כמה דברים.", cls: "empty" }); return; }
     if (busy) return;
+    try { window.speechSynthesis?.cancel(); } catch {}
+    setSpeaking(false);
+    setHasResult(false);
     setBusy(true);
     setHint("");
     setVerdict({ text: "מנתחים את הדגימה…", cls: "" });
@@ -140,9 +165,12 @@ export default function App() {
       });
       if (!res.ok) throw new Error("HTTP " + res.status + " " + (await res.text()).slice(0, 140));
       const out = await res.json();
+      const score = Math.max(0, Math.min(100, Math.round(out.score)));
       setVerdict({ text: out.verdict || "…אין מילים לתאר את זה.", cls: "" });
       setChips(out.ingredients || []);
-      animateTo(Math.max(0, Math.min(100, Math.round(out.score))));
+      scoreValRef.current = score;
+      setHasResult(true);
+      animateTo(score);
     } catch (err) {
       setVerdict({ text: "תקלה: " + (err.message || err), cls: "err" });
       console.error(err);
@@ -204,7 +232,19 @@ export default function App() {
           </div>
         </div>
 
-        <p className={"verdict " + verdict.cls}>{verdict.text}</p>
+        <div className="verdict-row">
+          <p className={"verdict " + verdict.cls}>{verdict.text}</p>
+          {hasResult && canSpeak && (
+            <button
+              className={"play" + (speaking ? " playing" : "")}
+              onClick={speak}
+              aria-label={speaking ? "עצרו את ההקראה" : "השמיעו את התוצאה"}
+              title={speaking ? "עצרו" : "השמיעו את התוצאה"}
+            >
+              {speaking ? "■" : "▶"}
+            </button>
+          )}
+        </div>
 
         <div className="chips" aria-label="מרכיבים">
           {chips.map((c, i) => <span key={i} className="chip">{c}</span>)}
