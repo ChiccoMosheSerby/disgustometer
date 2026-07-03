@@ -47,6 +47,7 @@ export default function App() {
   const currentRef = useRef(0);
   const recogRef = useRef(null);
   const transcriptRef = useRef("");
+  const finalRef = useRef("");
 
   const [verdict, setVerdict] = useState({ text: "הקישו על המיקרופון והתחילו למנות דברים.", cls: "empty" });
   const [chips, setChips] = useState([]);
@@ -124,10 +125,20 @@ export default function App() {
       recog.interimResults = true;
       recog.continuous = true;
       recog.onresult = (e) => {
-        let t = "";
-        for (let i = 0; i < e.results.length; i++) t += e.results[i][0].transcript;
-        transcriptRef.current = t;
-        setLiveT(t);
+        // Only newly-changed results are read (from resultIndex onward).
+        // Finalized chunks are appended once to finalRef; interim text is
+        // rebuilt live. This avoids the duplicate/runaway accumulation that
+        // happens when re-reading the whole results list on every event and
+        // across the onend->start() restart loop.
+        let interim = "";
+        for (let i = e.resultIndex; i < e.results.length; i++) {
+          const res = e.results[i];
+          if (res.isFinal) finalRef.current += res[0].transcript + " ";
+          else interim += res[0].transcript;
+        }
+        const full = (finalRef.current + interim).replace(/\s+/g, " ").trim();
+        transcriptRef.current = full;
+        setLiveT(full);
       };
       recog.onend = () => { if (recogRef.current?._listening) { try { recog.start(); } catch {} } };
       recog.onerror = (ev) => {
@@ -183,7 +194,7 @@ export default function App() {
   function startListening() {
     const recog = recogRef.current;
     if (!recog) return;
-    transcriptRef.current = ""; setLiveT("");
+    transcriptRef.current = ""; finalRef.current = ""; setLiveT("");
     recog._listening = true; setListening(true);
     setHint("מקשיבים… הקישו כדי לעצור");
     try { recog.start(); } catch {}
